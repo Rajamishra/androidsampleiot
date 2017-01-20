@@ -13,6 +13,7 @@ import android.widget.Toast;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.auth.policy.conditions.StringCondition;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttClientStatusCallback;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttManager;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttNewMessageCallback;
@@ -32,7 +33,6 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 
 import static android.content.ContentValues.TAG;
-import static android.widget.Toast.LENGTH_LONG;
 
 public class MainActivity extends Activity {
 
@@ -40,7 +40,6 @@ public class MainActivity extends Activity {
     static final String LOG_TAG = "Main Activity";
     @BindView(R.id.mjpegViewDefault)
     MjpegView mjpegView;
-    String RegId="";
 
     // --- Constants to modify per your configuration ---
 
@@ -55,8 +54,9 @@ public class MainActivity extends Activity {
     private static final Regions MY_REGION = Regions.AP_SOUTHEAST_2;
 
     //Topic for sending device commands
-    private static final String TOPIC_DEVICE_TOKEN = "sdk/test/Python2";
-    private static final String TOPIC_DEVICE_IP="sdk/test/Python1";
+    private static final String TOPIC_DEVICE_COMMAND = "sdk/test/Onoff";
+    private static final String TOPIC_DEVICE_IP="sdk/test/IPadd";
+
 
     TextView tvStatus;
     Button btnConnect;
@@ -76,24 +76,17 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
-        tvStatus = (TextView) findViewById(R.id.tvStatus);
+
 
         btnConnect = (Button) findViewById(R.id.btnConnect);
         btnConnect.setOnClickListener(connectClick);
         btnConnect.setEnabled(false);
 
-        btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
-        btnDisconnect.setOnClickListener(disconnectClick);
 
 
-
-        btnUp = (Button) findViewById(R.id.btnUp);
-        btnDown = (Button) findViewById(R.id.btnDown);
         btnLeft = (Button) findViewById(R.id.btnLeft);
         btnRight = (Button) findViewById(R.id.btnRight);
 
-        btnUp.setOnClickListener(publishClick);
-        btnDown.setOnClickListener(publishClick);
         btnLeft.setOnClickListener(publishClick);
         btnRight.setOnClickListener(publishClick);
 
@@ -102,10 +95,7 @@ public class MainActivity extends Activity {
         // MQTT client IDs are required to be unique per AWS IoT account.
         // This UUID is "practically unique" but does not _guarantee_
         // uniqueness.
-
         clientId = UUID.randomUUID().toString();
-        //String myToken=FirebaseInstanceId.getInstance().getToken();
-        //Toast.makeText(this.getApplicationContext(), "Rajesh"+myToken, LENGTH_LONG).show();
 
         // Initialize the AWS Cognito credentials provider
         credentialsProvider = new CognitoCachingCredentialsProvider(
@@ -137,7 +127,6 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
-//        Toast.makeText(this.getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG);
     }
     private DisplayMode calculateDisplayMode() {
         int orientation = getResources().getConfiguration().orientation;
@@ -147,7 +136,7 @@ public class MainActivity extends Activity {
 
     private void loadIpCam() {
         Mjpeg.newInstance()
-                .open("http://10.31.130.160:8090/?action=stream", 5)
+                .open("http://192.168.100.3:8080/?action=stream", 5)
                 .subscribe(
                         inputStream -> {
                             mjpegView.setSource(inputStream);
@@ -156,7 +145,7 @@ public class MainActivity extends Activity {
                         },
                         throwable -> {
                             Log.e(getClass().getSimpleName(), "mjpeg error", throwable);
-                            Toast.makeText(this, "Error", LENGTH_LONG).show();
+                            Toast.makeText(this, "Error", Toast.LENGTH_LONG).show();
                         });
     }
 
@@ -179,8 +168,6 @@ public class MainActivity extends Activity {
         public void onClick(View v) {
 
             Log.d(LOG_TAG, "clientId = " + clientId);
-//            Toast.makeText(getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG).show();
-
 
             try {
 
@@ -193,15 +180,8 @@ public class MainActivity extends Activity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                if (status == AWSIotMqttClientStatus.Connecting) {
-                                    tvStatus.setText("Connecting...");
-
-                                } else if (status == AWSIotMqttClientStatus.Connected) {
-                                    tvStatus.setText("Connected");
-                                    String myToken=FirebaseInstanceId.getInstance().getToken();
-//                                    Toast.makeText(getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG).show();
-                                    mqttManager.publishString("ON", TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
-                                    mqttManager.publishString(myToken, TOPIC_DEVICE_TOKEN, AWSIotMqttQos.QOS0);
+                               if (status == AWSIotMqttClientStatus.Connected) {
+                                    mqttManager.publishString("ON", TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
                                     mqttManager.subscribeToTopic(TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0,
                                             new AWSIotMqttNewMessageCallback() {
                                                 @Override
@@ -211,13 +191,8 @@ public class MainActivity extends Activity {
                                                         public void run() {
                                                             try {
                                                                 String message = new String(data, "UTF-8");
-                                                                Videolink=message;
-                                                                //loadIpCam();
-                                                                Log.d(LOG_TAG, "Message arrived:");
-                                                                Log.d(LOG_TAG, "   Topic: " + topic);
-                                                                Log.d(LOG_TAG, " Message: " + message);
-
-                                                                tvStatus.setText(message);
+                                                                Videolink="http://192.168.100.3:8080/?action=stream";
+                                                                loadIpCam();
 
                                                             } catch (UnsupportedEncodingException e) {
                                                                 Log.e(LOG_TAG, "Message encoding error.", e);
@@ -231,24 +206,21 @@ public class MainActivity extends Activity {
                                     if (throwable != null) {
                                         Log.e(LOG_TAG, "Connection error.", throwable);
                                     }
-                                    tvStatus.setText("Reconnecting");
                                 } else if (status == AWSIotMqttClientStatus.ConnectionLost) {
                                     if (throwable != null) {
                                         Log.e(LOG_TAG, "Connection error.", throwable);
                                         throwable.printStackTrace();
                                     }
-                                    tvStatus.setText("Disconnected");
-                                } else {
-                                    tvStatus.setText("Disconnected");
 
                                 }
+
+
                             }
                         });
                     }
                 });
             } catch (final Exception e) {
                 Log.e(LOG_TAG, "Connection error.", e);
-                tvStatus.setText("Error! " + e.getMessage());
             }
 
         }
@@ -259,12 +231,6 @@ public class MainActivity extends Activity {
         public void onClick(View v) {
             String publishString = "";
             switch (v.getId()) {
-                case R.id.btnUp:
-                    publishString = "Up";
-                    break;
-                case R.id.btnDown:
-                    publishString = "Down";
-                    break;
                 case R.id.btnLeft:
                     publishString = "Left";
                     break;
@@ -273,7 +239,7 @@ public class MainActivity extends Activity {
                     break;
             }
             try {
-                mqttManager.publishString(publishString, TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
+                mqttManager.publishString(publishString, TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Publish error.", e);
             }
@@ -281,18 +247,8 @@ public class MainActivity extends Activity {
         }
     };
 
-    View.OnClickListener disconnectClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
 
-            try {
-                mqttManager.disconnect();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Disconnect error.", e);
-            }
 
-        }
-    };
 
     public void onStop() {
 
@@ -306,29 +262,14 @@ public class MainActivity extends Activity {
 
     public class GCMTokenRefresh extends FirebaseInstanceIdService {
 
-        /*public void retrieveToken() {
-
-            String myToken =FirebaseInstanceId.getInstance().getToken();
-            Toast.makeText(this, "Rajesh" + myToken, Toast.LENGTH_LONG).show();
-        }
-*/
         @Override
         public void onTokenRefresh() {
             // Get updated InstanceID token.
             String refreshedToken = FirebaseInstanceId.getInstance().getToken();
             Log.d(TAG, "Refreshed token: " + refreshedToken);
-//            Toast.makeText(getApplicationContext(), "Rajesh" + refreshedToken,Toast.LENGTH_LONG).show();
-  //          RegId = refreshedToken;
 
-            // TODO: Implement this method to send any registration to your app's servers.
-            sendRegistrationToServer(refreshedToken);
         }
-
-        private void sendRegistrationToServer(String refreshedToken) {
-
-            mqttManager.publishString(refreshedToken, TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
-        }
-    }
+ }
 
 
 }
