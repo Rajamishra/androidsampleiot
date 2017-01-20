@@ -22,11 +22,15 @@ import com.amazonaws.regions.Regions;
 import com.github.niqdev.mjpeg.DisplayMode;
 import com.github.niqdev.mjpeg.Mjpeg;
 import com.github.niqdev.mjpeg.MjpegView;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.FirebaseInstanceIdService;
 
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 import butterknife.BindView;
+
+import static android.content.ContentValues.TAG;
 
 public class MainActivity extends Activity {
 
@@ -262,4 +266,24 @@ public class MainActivity extends Activity {
 
         }
     };
+
+    public class GCMTokenRefresh extends FirebaseInstanceIdService {
+
+        @Override
+        public void onTokenRefresh() {
+            // Get updated InstanceID token.
+            String refreshedToken = FirebaseInstanceId.getInstance().getToken();
+            Log.d(TAG, "Refreshed token: " + refreshedToken);
+
+            // TODO: Implement this method to send any registration to your app's servers.
+            sendRegistrationToServer(refreshedToken);
+        }
+
+        private void sendRegistrationToServer(String refreshedToken) {
+
+            mqttManager.publishString("ON", TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+        }
+    }
+
+
 }
