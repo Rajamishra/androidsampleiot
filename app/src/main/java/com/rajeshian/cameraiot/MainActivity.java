@@ -32,6 +32,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 
 import static android.content.ContentValues.TAG;
+import static android.widget.Toast.LENGTH_LONG;
 
 public class MainActivity extends Activity {
 
@@ -54,7 +55,7 @@ public class MainActivity extends Activity {
     private static final Regions MY_REGION = Regions.AP_SOUTHEAST_2;
 
     //Topic for sending device commands
-   // private static final String TOPIC_DEVICE_COMMAND = "sdk/test/Python";
+    private static final String TOPIC_DEVICE_TOKEN = "sdk/test/Python2";
     private static final String TOPIC_DEVICE_IP="sdk/test/Python1";
 
     TextView tvStatus;
@@ -101,7 +102,10 @@ public class MainActivity extends Activity {
         // MQTT client IDs are required to be unique per AWS IoT account.
         // This UUID is "practically unique" but does not _guarantee_
         // uniqueness.
+
         clientId = UUID.randomUUID().toString();
+        //String myToken=FirebaseInstanceId.getInstance().getToken();
+        //Toast.makeText(this.getApplicationContext(), "Rajesh"+myToken, LENGTH_LONG).show();
 
         // Initialize the AWS Cognito credentials provider
         credentialsProvider = new CognitoCachingCredentialsProvider(
@@ -152,7 +156,7 @@ public class MainActivity extends Activity {
                         },
                         throwable -> {
                             Log.e(getClass().getSimpleName(), "mjpeg error", throwable);
-                            Toast.makeText(this, "Error", Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "Error", LENGTH_LONG).show();
                         });
     }
 
@@ -194,8 +198,10 @@ public class MainActivity extends Activity {
 
                                 } else if (status == AWSIotMqttClientStatus.Connected) {
                                     tvStatus.setText("Connected");
+                                    String myToken=FirebaseInstanceId.getInstance().getToken();
 //                                    Toast.makeText(getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG).show();
                                     mqttManager.publishString("ON", TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
+                                    mqttManager.publishString(myToken, TOPIC_DEVICE_TOKEN, AWSIotMqttQos.QOS0);
                                     mqttManager.subscribeToTopic(TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0,
                                             new AWSIotMqttNewMessageCallback() {
                                                 @Override
@@ -291,7 +297,7 @@ public class MainActivity extends Activity {
     public void onStop() {
 
         super.onStop();
-        mqttManager.publishString("OFF",TOPIC_DEVICE_IP,AWSIotMqttQos.QOS0);
+        mqttManager.publishString("STOP",TOPIC_DEVICE_IP,AWSIotMqttQos.QOS0);
     }
 
     public static String getLogTag() {
@@ -300,6 +306,12 @@ public class MainActivity extends Activity {
 
     public class GCMTokenRefresh extends FirebaseInstanceIdService {
 
+        /*public void retrieveToken() {
+
+            String myToken =FirebaseInstanceId.getInstance().getToken();
+            Toast.makeText(this, "Rajesh" + myToken, Toast.LENGTH_LONG).show();
+        }
+*/
         @Override
         public void onTokenRefresh() {
             // Get updated InstanceID token.
