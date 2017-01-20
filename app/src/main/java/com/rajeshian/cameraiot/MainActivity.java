@@ -29,6 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 import butterknife.BindView;
+import butterknife.ButterKnife;
 
 import static android.content.ContentValues.TAG;
 
@@ -71,6 +72,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ButterKnife.bind(this);
 
         tvStatus = (TextView) findViewById(R.id.tvStatus);
 
@@ -139,7 +141,7 @@ public class MainActivity extends Activity {
 
     private void loadIpCam() {
         Mjpeg.newInstance()
-                .open("http://10.31.130.160:8090/?action=stream", 5)
+                .open("http://10.31.130.160:8080/?action=stream", 5)
                 .subscribe(
                         inputStream -> {
                             mjpegView.setSource(inputStream);
@@ -151,6 +153,13 @@ public class MainActivity extends Activity {
                             Toast.makeText(this, "Error", Toast.LENGTH_LONG).show();
                         });
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadIpCam();
+    }
+
 
     View.OnClickListener connectClick = new View.OnClickListener() {
         @Override
