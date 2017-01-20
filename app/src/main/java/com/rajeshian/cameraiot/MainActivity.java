@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     static final String LOG_TAG = "Main Activity";
     @BindView(R.id.mjpegViewDefault)
     MjpegView mjpegView;
+    String RegId="";
 
     // --- Constants to modify per your configuration ---
 
@@ -53,7 +54,7 @@ public class MainActivity extends Activity {
     private static final Regions MY_REGION = Regions.AP_SOUTHEAST_2;
 
     //Topic for sending device commands
-    private static final String TOPIC_DEVICE_COMMAND = "sdk/test/Python";
+   // private static final String TOPIC_DEVICE_COMMAND = "sdk/test/Python";
     private static final String TOPIC_DEVICE_IP="sdk/test/Python1";
 
     TextView tvStatus;
@@ -132,6 +133,7 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
+//        Toast.makeText(this.getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG);
     }
     private DisplayMode calculateDisplayMode() {
         int orientation = getResources().getConfiguration().orientation;
@@ -141,7 +143,7 @@ public class MainActivity extends Activity {
 
     private void loadIpCam() {
         Mjpeg.newInstance()
-                .open("http://10.31.130.160:8080/?action=stream", 5)
+                .open("http://10.31.130.160:8090/?action=stream", 5)
                 .subscribe(
                         inputStream -> {
                             mjpegView.setSource(inputStream);
@@ -160,12 +162,21 @@ public class MainActivity extends Activity {
         loadIpCam();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mjpegView.stopPlayback();
+    }
+
+
 
     View.OnClickListener connectClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
 
             Log.d(LOG_TAG, "clientId = " + clientId);
+//            Toast.makeText(getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG).show();
+
 
             try {
 
@@ -183,7 +194,8 @@ public class MainActivity extends Activity {
 
                                 } else if (status == AWSIotMqttClientStatus.Connected) {
                                     tvStatus.setText("Connected");
-                                    mqttManager.publishString("ON", TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+//                                    Toast.makeText(getApplicationContext(), "Hi Rajesh!!!",Toast.LENGTH_LONG).show();
+                                    mqttManager.publishString("ON", TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
                                     mqttManager.subscribeToTopic(TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0,
                                             new AWSIotMqttNewMessageCallback() {
                                                 @Override
@@ -255,7 +267,7 @@ public class MainActivity extends Activity {
                     break;
             }
             try {
-                mqttManager.publishString(publishString, TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+                mqttManager.publishString(publishString, TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Publish error.", e);
             }
@@ -276,6 +288,16 @@ public class MainActivity extends Activity {
         }
     };
 
+    public void onStop() {
+
+        super.onStop();
+        mqttManager.publishString("OFF",TOPIC_DEVICE_IP,AWSIotMqttQos.QOS0);
+    }
+
+    public static String getLogTag() {
+        return LOG_TAG;
+    }
+
     public class GCMTokenRefresh extends FirebaseInstanceIdService {
 
         @Override
@@ -283,6 +305,8 @@ public class MainActivity extends Activity {
             // Get updated InstanceID token.
             String refreshedToken = FirebaseInstanceId.getInstance().getToken();
             Log.d(TAG, "Refreshed token: " + refreshedToken);
+//            Toast.makeText(getApplicationContext(), "Rajesh" + refreshedToken,Toast.LENGTH_LONG).show();
+  //          RegId = refreshedToken;
 
             // TODO: Implement this method to send any registration to your app's servers.
             sendRegistrationToServer(refreshedToken);
@@ -290,7 +314,7 @@ public class MainActivity extends Activity {
 
         private void sendRegistrationToServer(String refreshedToken) {
 
-            mqttManager.publishString("ON", TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+            mqttManager.publishString(refreshedToken, TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0);
         }
     }
 
