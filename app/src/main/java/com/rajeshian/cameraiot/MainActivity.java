@@ -136,7 +136,7 @@ public class MainActivity extends Activity {
 
     private void loadIpCam() {
         Mjpeg.newInstance()
-                .open("http://192.168.100.3:8080/?action=stream", 5)
+                .open("http://10.31.130.160:8090/?action=stream", 5)
                 .subscribe(
                         inputStream -> {
                             mjpegView.setSource(inputStream);
@@ -149,11 +149,11 @@ public class MainActivity extends Activity {
                         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadIpCam();
-    }
+    //@Override
+    //protected void onResume() {
+      //  super.onResume();
+        //loadIpCam();
+    //}
 
     @Override
     protected void onPause() {
@@ -191,8 +191,11 @@ public class MainActivity extends Activity {
                                                         public void run() {
                                                             try {
                                                                 String message = new String(data, "UTF-8");
-                                                                Videolink="http://192.168.100.3:8080/?action=stream";
+                                                                Videolink=message;
+                                                                Toast.makeText(getApplicationContext(), message , Toast.LENGTH_LONG).show();
                                                                 loadIpCam();
+
+                                                                //
 
                                                             } catch (UnsupportedEncodingException e) {
                                                                 Log.e(LOG_TAG, "Message encoding error.", e);
@@ -253,7 +256,7 @@ public class MainActivity extends Activity {
     public void onStop() {
 
         super.onStop();
-        mqttManager.publishString("STOP",TOPIC_DEVICE_IP,AWSIotMqttQos.QOS0);
+        mqttManager.publishString("STOP",TOPIC_DEVICE_COMMAND,AWSIotMqttQos.QOS0);
     }
 
     public static String getLogTag() {
