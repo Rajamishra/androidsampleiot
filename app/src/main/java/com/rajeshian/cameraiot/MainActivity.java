@@ -1,74 +1,35 @@
 package com.rajeshian.cameraiot;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.auth.policy.conditions.StringCondition;
-import com.amazonaws.mobileconnectors.iot.AWSIotMqttClientStatusCallback;
-import com.amazonaws.mobileconnectors.iot.AWSIotMqttManager;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttNewMessageCallback;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttQos;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.github.niqdev.mjpeg.DisplayMode;
 import com.github.niqdev.mjpeg.Mjpeg;
+import com.github.niqdev.mjpeg.MjpegSurfaceView;
 import com.github.niqdev.mjpeg.MjpegView;
-import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.FirebaseInstanceIdService;
 
 import java.io.UnsupportedEncodingException;
-import java.util.UUID;
 
-import butterknife.BindView;
 import butterknife.ButterKnife;
-
-import static android.content.ContentValues.TAG;
 
 public class MainActivity extends Activity {
 
     public String Videolink = "";
     static final String LOG_TAG = "Main Activity";
-    @BindView(R.id.mjpegViewDefault)
+
+    Button btnLeft, btnRight;
+
+    CamIOT mCamIOT;
+
     MjpegView mjpegView;
-
-    // --- Constants to modify per your configuration ---
-
-    // Customer specific IoT endpoint
-    // AWS Iot CLI describe-endpoint call returns: XXXXXXXXXX.iot.<region>.amazonaws.com,
-    private static final String CUSTOMER_SPECIFIC_ENDPOINT = "aqwf0ncryp7rw.iot.ap-southeast-2.amazonaws.com";
-    // Cognito pool ID. For this app, pool needs to be unauthenticated pool with
-    // AWS IoT permissions.
-    private static final String COGNITO_POOL_ID = "ap-southeast-2:5296b281-1e1c-40c3-81f8-f0c292d87cf0";
-
-    // Region of AWS IoT
-    private static final Regions MY_REGION = Regions.AP_SOUTHEAST_2;
-
-    //Topic for sending device commands
-    private static final String TOPIC_DEVICE_COMMAND = "sdk/test/Onoff";
-    private static final String TOPIC_DEVICE_IP="sdk/test/IPadd";
-
-
-    TextView tvStatus;
-    Button btnConnect;
-    Button btnDisconnect;
-    Button btnUp, btnDown, btnLeft, btnRight;
-
-    AWSIotMqttManager mqttManager;
-    String clientId;
-    String message;
-
-    AWSCredentials awsCredentials;
-    CognitoCachingCredentialsProvider credentialsProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,13 +37,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
-
-
-        btnConnect = (Button) findViewById(R.id.btnConnect);
-        btnConnect.setOnClickListener(connectClick);
-        btnConnect.setEnabled(false);
-
-
+        mCamIOT = (CamIOT) getApplicationContext();
+        mCamIOT.mActivity = this;
 
         btnLeft = (Button) findViewById(R.id.btnLeft);
         btnRight = (Button) findViewById(R.id.btnRight);
@@ -90,44 +46,39 @@ public class MainActivity extends Activity {
         btnLeft.setOnClickListener(publishClick);
         btnRight.setOnClickListener(publishClick);
 
+        mjpegView = (MjpegSurfaceView) findViewById(R.id.mjpegViewDefault);
+        if(mCamIOT.connected)
+            subscribe();
 
+    }
 
-        // MQTT client IDs are required to be unique per AWS IoT account.
-        // This UUID is "practically unique" but does not _guarantee_
-        // uniqueness.
-        clientId = UUID.randomUUID().toString();
-
-        // Initialize the AWS Cognito credentials provider
-        credentialsProvider = new CognitoCachingCredentialsProvider(
-                getApplicationContext(), // context
-                COGNITO_POOL_ID, // Identity Pool ID
-                MY_REGION // Region
-        );
-
-        Region region = Region.getRegion(MY_REGION);
-
-        // MQTT Client
-        mqttManager = new AWSIotMqttManager(clientId, CUSTOMER_SPECIFIC_ENDPOINT);
-
-        // The following block uses IAM user credentials for authentication with AWS IoT.
-        //awsCredentials = new BasicAWSCredentials("ACCESS_KEY_CHANGE_ME", "SECRET_KEY_CHANGE_ME");
-        //btnConnect.setEnabled(true);
-
-        // The following block uses a Cognito credentials provider for authentication with AWS IoT.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                awsCredentials = credentialsProvider.getCredentials();
-
-                runOnUiThread(new Runnable() {
+    public void subscribe(){
+        mCamIOT.subscribed = true;
+        mCamIOT.mqttManager.publishString("ON", mCamIOT.TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+        mCamIOT.mqttManager.subscribeToTopic(mCamIOT.TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0,
+                new AWSIotMqttNewMessageCallback() {
                     @Override
-                    public void run() {
-                        btnConnect.setEnabled(true);
+                    public void onMessageArrived(final String topic, final byte[] data) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    Videolink=new String(data, "UTF-8");
+                                    loadIpCam();
+
+                                } catch (UnsupportedEncodingException e) {
+                                    Log.e(LOG_TAG, "Message encoding error.", e);
+                                }
+                            }
+                        });
                     }
                 });
-            }
-        }).start();
+        Intent intent = new Intent(this, NotificationService.class);
+        startService(intent);
+        Log.i(LOG_TAG, "subscribed");
     }
+
+
     private DisplayMode calculateDisplayMode() {
         int orientation = getResources().getConfiguration().orientation;
         return orientation == Configuration.ORIENTATION_LANDSCAPE ?
@@ -135,8 +86,11 @@ public class MainActivity extends Activity {
     }
 
     private void loadIpCam() {
+        if(Videolink.contentEquals(""))
+            return;
+        Log.e("saketh",Videolink);
         Mjpeg.newInstance()
-                .open("http://10.31.130.160:8090/?action=stream", 5)
+                .open(Videolink, 10)
                 .subscribe(
                         inputStream -> {
                             mjpegView.setSource(inputStream);
@@ -149,85 +103,18 @@ public class MainActivity extends Activity {
                         });
     }
 
-    //@Override
-    //protected void onResume() {
-      //  super.onResume();
-        //loadIpCam();
-    //}
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadIpCam();
+    }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mjpegView.stopPlayback();
+        if(mjpegView.isStreaming())
+            mjpegView.stopPlayback();
     }
-
-
-
-    View.OnClickListener connectClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-
-            Log.d(LOG_TAG, "clientId = " + clientId);
-
-            try {
-
-                mqttManager.connect(credentialsProvider, new AWSIotMqttClientStatusCallback() {
-                    @Override
-                    public void onStatusChanged(final AWSIotMqttClientStatus status,
-                                                final Throwable throwable) {
-                        Log.d(LOG_TAG, "Status = " + String.valueOf(status));
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                               if (status == AWSIotMqttClientStatus.Connected) {
-                                    mqttManager.publishString("ON", TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
-                                    mqttManager.subscribeToTopic(TOPIC_DEVICE_IP, AWSIotMqttQos.QOS0,
-                                            new AWSIotMqttNewMessageCallback() {
-                                                @Override
-                                                public void onMessageArrived(final String topic, final byte[] data) {
-                                                    runOnUiThread(new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            try {
-                                                                String message = new String(data, "UTF-8");
-                                                                Videolink=message;
-                                                                Toast.makeText(getApplicationContext(), message , Toast.LENGTH_LONG).show();
-                                                                loadIpCam();
-
-                                                                //
-
-                                                            } catch (UnsupportedEncodingException e) {
-                                                                Log.e(LOG_TAG, "Message encoding error.", e);
-                                                            }
-                                                        }
-                                                    });
-                                                }
-                                            });
-
-                                } else if (status == AWSIotMqttClientStatus.Reconnecting) {
-                                    if (throwable != null) {
-                                        Log.e(LOG_TAG, "Connection error.", throwable);
-                                    }
-                                } else if (status == AWSIotMqttClientStatus.ConnectionLost) {
-                                    if (throwable != null) {
-                                        Log.e(LOG_TAG, "Connection error.", throwable);
-                                        throwable.printStackTrace();
-                                    }
-
-                                }
-
-
-                            }
-                        });
-                    }
-                });
-            } catch (final Exception e) {
-                Log.e(LOG_TAG, "Connection error.", e);
-            }
-
-        }
-    };
 
     View.OnClickListener publishClick = new View.OnClickListener() {
         @Override
@@ -242,7 +129,7 @@ public class MainActivity extends Activity {
                     break;
             }
             try {
-                mqttManager.publishString(publishString, TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+                mCamIOT.mqttManager.publishString(publishString, mCamIOT.TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Publish error.", e);
             }
@@ -250,29 +137,16 @@ public class MainActivity extends Activity {
         }
     };
 
-
-
-
-    public void onStop() {
+    @Override
+    protected void onStop() {
 
         super.onStop();
-        mqttManager.publishString("STOP",TOPIC_DEVICE_COMMAND,AWSIotMqttQos.QOS0);
-    }
-
-    public static String getLogTag() {
-        return LOG_TAG;
-    }
-
-    public class GCMTokenRefresh extends FirebaseInstanceIdService {
-
-        @Override
-        public void onTokenRefresh() {
-            // Get updated InstanceID token.
-            String refreshedToken = FirebaseInstanceId.getInstance().getToken();
-            Log.d(TAG, "Refreshed token: " + refreshedToken);
-
+        if(mCamIOT.connected) {
+            mCamIOT.mqttManager.publishString("STOP", mCamIOT.TOPIC_DEVICE_COMMAND, AWSIotMqttQos.QOS0);
+            mCamIOT.mqttManager.unsubscribeTopic(mCamIOT.TOPIC_DEVICE_IP);
+            mCamIOT.subscribed = false;
         }
- }
-
+        mCamIOT.mActivity = null;
+    }
 
 }

@@ -1,9 +1,10 @@
 <resources>
-    <string name="app_name">CameraIoT</string>
+    <string name="app_name"> Smart CCTV </string>
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
     <string name="up">Up</string>
     <string name="down">Down</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
+    <string name="Videolink">http://192.168.100.3:8090/?action=stream</string>
 </resources>

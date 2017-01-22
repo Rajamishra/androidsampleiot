@@ -7,24 +7,7 @@
     android:orientation="vertical"
     android:padding="3dp" >
 
-    <LinearLayout
-        android:id="@+id/connectionTab"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="?android:attr/buttonBarButtonStyle"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:orientation="horizontal" >
 
-        <Button
-            android:id="@+id/btnConnect"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_height="wrap_content"
-            android:text="@string/connect" />
-
-    </LinearLayout>
 
 
     <LinearLayout
@@ -55,11 +38,11 @@
 
     <com.github.niqdev.mjpeg.MjpegSurfaceView
         android:id="@+id/mjpegViewDefault"
-        android:layout_below="@id/connectionTab"
         android:layout_above="@id/tvbutton"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         stream:type="stream_default" />
+
 
 
 </RelativeLayout>
