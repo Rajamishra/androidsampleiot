@@ -28,14 +28,13 @@ public class MainActivity extends Activity {
     Button btnLeft, btnRight;
 
     CamIOT mCamIOT;
-
     MjpegView mjpegView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
+//        ButterKnife.bind(this);
 
         mCamIOT = (CamIOT) getApplicationContext();
         mCamIOT.mActivity = this;

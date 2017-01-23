@@ -7,6 +7,7 @@
     android:orientation="vertical"
     android:padding="3dp" >
 
+
     <LinearLayout
         android:id="@+id/tvbutton"
         style="?android:attr/buttonBarButtonStyle"
@@ -35,9 +36,11 @@
 
     <com.github.niqdev.mjpeg.MjpegSurfaceView
         android:id="@+id/mjpegViewDefault"
+        android:layout_alignParentTop="true"
         android:layout_above="@id/tvbutton"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         stream:type="stream_default" />
+
 
 </RelativeLayout>
