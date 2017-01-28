@@ -18,24 +18,8 @@ import java.util.UUID;
 
 public class CamIOT extends Application {
 
-    // --- Constants to modify per your configuration ---
+    public static final String LOG_TAG = "CamIOT Application";
 
-    // Customer specific IoT endpoint
-    // AWS Iot CLI describe-endpoint call returns: XXXXXXXXXX.iot.<region>.amazonaws.com,
-    public final String CUSTOMER_SPECIFIC_ENDPOINT = "aqwf0ncryp7rw.iot.ap-southeast-2.amazonaws.com";
-    // Cognito pool ID. For this app, pool needs to be unauthenticated pool with
-    // AWS IoT permissions.
-    public final String COGNITO_POOL_ID = "ap-southeast-2:5296b281-1e1c-40c3-81f8-f0c292d87cf0";
-
-    // Region of AWS IoT
-    public final Regions MY_REGION = Regions.AP_SOUTHEAST_2;
-
-    //Topic for sending device commands
-    public final String TOPIC_DEVICE_COMMAND = "sdk/test/Onoff";
-    public final String TOPIC_DEVICE_IP="sdk/test/IPadd";
-    public final String TOPIC_DEVICE_NOTIFICATION = "sdk/test/Notif";
-
-    public final String LOG_TAG = "CamIOT Application";
 
     public boolean subscribed = false;
     public boolean connected = false;
@@ -65,14 +49,14 @@ public class CamIOT extends Application {
         // Initialize the AWS Cognito credentials provider
         credentialsProvider = new CognitoCachingCredentialsProvider(
                 getApplicationContext(), // context
-                COGNITO_POOL_ID, // Identity Pool ID
-                MY_REGION // Region
+                Constants.COGNITO_POOL_ID, // Identity Pool ID
+                Constants.MY_REGION // Region
         );
 
-        Region region = Region.getRegion(MY_REGION);
+        Region region = Region.getRegion(Constants.MY_REGION);
 
         // MQTT Client
-        mqttManager = new AWSIotMqttManager(clientId, CUSTOMER_SPECIFIC_ENDPOINT);
+        mqttManager = new AWSIotMqttManager(clientId, Constants.CUSTOMER_SPECIFIC_ENDPOINT);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -118,7 +102,7 @@ public class CamIOT extends Application {
     }
 
     public void subscribeNotif() {
-        mqttManager.subscribeToTopic(TOPIC_DEVICE_NOTIFICATION, AWSIotMqttQos.QOS0,
+        mqttManager.subscribeToTopic(Constants.TOPIC_DEVICE_NOTIFICATION, AWSIotMqttQos.QOS0,
                 new AWSIotMqttNewMessageCallback() {
                     @Override
                     public void onMessageArrived(final String topic, final byte[] data) {

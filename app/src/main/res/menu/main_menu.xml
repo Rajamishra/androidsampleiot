@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/video"
+        android:icon="@drawable/ic_videocam_black_24dp"
+        android:title="@string/video"
+        app:showAsAction="ifRoom"/>
+    <item android:id="@+id/snapshot"
+        android:icon="@drawable/ic_camera_enhance_black_24dp"
+        android:title="@string/snapshot"
+        app:showAsAction="ifRoom"/>
+</menu>

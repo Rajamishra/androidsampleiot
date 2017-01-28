@@ -25,6 +25,14 @@
             android:text="@string/left" />
 
         <Button
+            android:id="@+id/btnAuto"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_height="wrap_content"
+            android:text="@string/Auto" />
+
+        <Button
             android:id="@+id/btnRight"
             android:layout_width="0dp"
             style="?android:attr/buttonBarButtonStyle"
@@ -34,13 +42,28 @@
 
     </LinearLayout>
 
-    <com.github.niqdev.mjpeg.MjpegSurfaceView
-        android:id="@+id/mjpegViewDefault"
-        android:layout_alignParentTop="true"
-        android:layout_above="@id/tvbutton"
+    <LinearLayout
+        android:id="@+id/mjpegContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        stream:type="stream_default" />
+        android:layout_alignParentTop="true"
+        android:layout_above="@id/tvbutton"
+        >
+
+        <com.github.niqdev.mjpeg.MjpegSurfaceView
+            android:id="@+id/mjpegViewDefault"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            stream:type="stream_default" />
+    </LinearLayout>
+
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:visibility="gone"
+        android:contentDescription="@string/snapshot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 
 </RelativeLayout>
