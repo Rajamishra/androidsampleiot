@@ -155,4 +155,8 @@ public class Util {
         map.put("state", observer.getState());
         map.put("percentage", progress + "%");
     }
+
+    public static void deleteFile(Context context, String bucketName, String fileName){
+        getS3Client(context).deleteObject(bucketName,fileName);
+    }
 }
